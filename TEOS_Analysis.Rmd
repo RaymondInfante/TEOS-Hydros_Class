@@ -16,6 +16,7 @@ https://bats.bios.edu/about/
 ```{r, message=FALSE}
 library(tidyverse)
 #Install (seacarb)
+#Gibbs Seawater
 library(gsw)
 ```
 
@@ -31,8 +32,10 @@ hydrostation_bottle <- read_delim("hydrostation_bottle.txt",
 hydrostation_bottle_names <- read_csv("hydrostation_bottle.txt", 
     skip = 30)
 
-#Create names for the dataset
+#Fix names for the dataset
 colnames(hydrostation_bottle) = colnames(hydrostation_bottle_names)
+
+view(hydrostation_bottle)
 
 ```
 ## Variables Names and Units
@@ -72,4 +75,105 @@ hydrostation_bottle %>%
 #We only have density data from 1988-present, but temperature and salinity data from 1950s-present, this mean i can calculate seawater density from 1950s- present, by using TEOS-10. 
 ```
 
+## TEOS-10 Toolbox in package seacarb
+
+```{r}
+?gsw
+?gsw_sigma0 # It said we need absolute salinity and conservative temperature (SA (g/kg),CT (°C))
+?gsw_SA_from_SP #Absolute Salinity from Practical Salinity
+#Practical Salinity*
+#Sea pressure (dbar)
+#Longitude
+#Latitude
+
+hydrostation_bottle %>% 
+  ggplot()+
+  geom_point(aes(x = decy, y = Pres ))
+#Not for all the time series. Missing from 1980 
+
+hydrostation_bottle %>% 
+  ggplot()+
+  geom_point(aes(x = decy, y = Depth ))
+#We have Depth for the entire time series
+
+?gsw_p_from_z()
+
+hydrostation_bottle =  hydrostation_bottle %>% 
+  mutate(Pres_gsw = gsw_p_from_z(Depth*-1, latN))
+
+hydrostation_bottle %>% 
+  ggplot()+
+  geom_point(aes(x = Pres, y = Pres_gsw))
+# We see strong 1:1 agreement between measured pressure and calculated pressure
+
+#Checking lat, lon, and salinity data
+hydrostation_bottle %>% 
+  ggplot()+
+  geom_point(aes(x = decy, y = CTD_S))
+
+hydrostation_bottle =  hydrostation_bottle %>% 
+  mutate(Pres_gsw = gsw_p_from_z(Depth*-1, latN)) %>% 
+  mutate(s_abs_gsw = gsw_SA_from_SP(Sal1, Pres_gsw,360-lonW, latN))
+
+#Checking the Absolute salinity
+hydrostation_bottle %>% 
+  ggplot()+
+  geom_point(aes(x = decy, y = s_abs_gsw))
+#Plotting the ratio for Absoute Salinity (created) vs Sal1 (Given in the dataset)
+hydrostation_bottle %>% 
+  filter(Sal1!= -999) %>% 
+  ggplot()+
+  geom_point(aes(x = Sal1, y = s_abs_gsw))
+
+#Temperature to Conservative Temperature
+?gsw_CT_from_t
+
+
+HydroS =  hydrostation_bottle %>% 
+  filter(Sal1!= -999) %>% 
+  mutate(Pres_gsw = gsw_p_from_z(Depth*-1, latN)) %>% 
+  mutate(s_abs_gsw = gsw_SA_from_SP(Sal1, Pres_gsw,360-lonW, latN)) %>% 
+  mutate(T_Cons_gsw = gsw_CT_from_t(s_abs_gsw,Temp,Pres_gsw))
+
+hydrostation_bottle %>% 
+  filter(Temp != -999) %>% 
+  ggplot()+
+  geom_point(aes(x = Temp, y = T_Cons_gsw))
+
+
+
+HydroS =  hydrostation_bottle %>% 
+  filter(Sal1!= -999) %>% 
+  mutate(Pres_gsw = gsw_p_from_z(Depth*-1, latN)) %>% 
+  mutate(s_abs_gsw = gsw_SA_from_SP(Sal1, Pres_gsw,360-lonW, latN)) %>% 
+  mutate(T_Cons_gsw = gsw_CT_from_t(s_abs_gsw,Temp,Pres_gsw)) %>% 
+  mutate(sig_theta_gsw = gsw_sigma0(s_abs_gsw,T_Cons_gsw))
+
+HydroS %>% 
+  filter(`Sig-th` != -999) %>% 
+  ggplot()+
+  geom_point(aes(x = `Sig-th`, y = sig_theta_gsw))
+
+HydroS %>% 
+  filter(sig_theta_gsw<0) %>% 
+  View()
+
+HydroS_Corrected_a = HydroS %>% 
+  filter(sig_theta_gsw<0 & sig_theta_gsw != NA) %>% 
+  mutate(s_abs_gsw = gsw_SA_from_SP(CTD_S, Pres_gsw,360-lonW, latN)) %>% 
+  mutate(T_Cons_gsw = gsw_CT_from_t(s_abs_gsw,Temp,Pres_gsw)) %>% 
+  mutate(sig_theta_gsw = gsw_sigma0(s_abs_gsw,T_Cons_gsw))
+
+HydroS_Corrected_b = HydroS %>% 
+  filter(sig_theta_gsw>0) 
+
+#The corrected one. And last one
+HydroS_corrected = rbind(HydroS_Corrected_a,HydroS_Corrected_b)
+
+```
+
+For Homework: 
+
+try to replace the broken line of data, and make in a way the code use in 161-168 in only a pipeline. 
+replace a line in the data using the tidyverse. 
 
