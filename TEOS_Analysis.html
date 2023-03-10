@@ -12,7 +12,7 @@
 
 <meta name="author" content="Raymond U. Infante" />
 
-<meta name="date" content="2023-03-07" />
+<meta name="date" content="2023-03-09" />
 
 <title>TEOS Hydrostation S Data Lab</title>
 
@@ -151,7 +151,7 @@ code span.ot { color: #007020; }
 <div class="inner">
 <h1 class="title toc-ignore">TEOS Hydrostation S Data Lab</h1>
 <h3 class="author">Raymond U. Infante</h3>
-<h3 class="date">2023-03-07</h3>
+<h3 class="date">2023-03-09</h3>
 </div>
 </header>
 
@@ -160,11 +160,13 @@ code span.ot { color: #007020; }
 <div id="content-wrapper">
   <div class="inner clearfix">
     <section id="main-content">
+<p>Link for information on BATS Hydrostation S <a href="https://bats.bios.edu/about/" class="uri">https://bats.bios.edu/about/</a></p>
 <div id="requiered-libraries" class="section level2">
 <h2>Requiered Libraries</h2>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co">#Install (seacarb)</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gsw)</span></code></pre></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#Gibbs Seawater</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gsw)</span></code></pre></div>
 </div>
 <div id="import-the-data" class="section level2">
 <h2>Import the data</h2>
@@ -177,8 +179,10 @@ code span.ot { color: #007020; }
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>hydrostation_bottle_names <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;hydrostation_bottle.txt&quot;</span>, </span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">skip =</span> <span class="dv">30</span>)</span>
 <span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">#Create names for the dataset</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(hydrostation_bottle) <span class="ot">=</span> <span class="fu">colnames</span>(hydrostation_bottle_names)</span></code></pre></div>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">#Fix names for the dataset</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(hydrostation_bottle) <span class="ot">=</span> <span class="fu">colnames</span>(hydrostation_bottle_names)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="fu">view</span>(hydrostation_bottle)</span></code></pre></div>
 </div>
 <div id="variables-names-and-units" class="section level2">
 <h2>Variables Names and Units</h2>
@@ -231,6 +235,13 @@ temperature (Density - 1000)<br />
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Density and Temperature are strongly correlated, but there appears to be two outliners that we will likely need to address at some point</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">#We only have density data from 1988-present, but temperature and salinity data from 1950s-present, this mean i can calculate seawater density from 1950s- present, by using TEOS-10. </span></span></code></pre></div>
+</div>
+<div id="teos-10-toolbox-in-package-seacarb" class="section level2">
+<h2>TEOS-10 Toolbox in package seacarb</h2>
+<p>For Homework:</p>
+<p>try to replace the broken line of data, and make in a way the code
+use in 161-168 in only a pipeline. replace a line in the data using the
+tidyverse.</p>
 </div>
     </section>
   </div>

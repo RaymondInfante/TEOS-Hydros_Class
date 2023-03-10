@@ -77,10 +77,10 @@ hydrostation_bottle %>%
 
 ## TEOS-10 Toolbox in package seacarb
 
-```{r}
-?gsw
-?gsw_sigma0 # It said we need absolute salinity and conservative temperature (SA (g/kg),CT (°C))
-?gsw_SA_from_SP #Absolute Salinity from Practical Salinity
+```{r, include=FALSE, echo=FALSE}
+#?gsw
+#?gsw_sigma0 # It said we need absolute salinity and conservative temperature (SA (g/kg),CT (°C))
+#?gsw_SA_from_SP #Absolute Salinity from Practical Salinity
 #Practical Salinity*
 #Sea pressure (dbar)
 #Longitude
@@ -96,7 +96,7 @@ hydrostation_bottle %>%
   geom_point(aes(x = decy, y = Depth ))
 #We have Depth for the entire time series
 
-?gsw_p_from_z()
+#?gsw_p_from_z()
 
 hydrostation_bottle =  hydrostation_bottle %>% 
   mutate(Pres_gsw = gsw_p_from_z(Depth*-1, latN))
@@ -126,7 +126,7 @@ hydrostation_bottle %>%
   geom_point(aes(x = Sal1, y = s_abs_gsw))
 
 #Temperature to Conservative Temperature
-?gsw_CT_from_t
+#?gsw_CT_from_t
 
 
 HydroS =  hydrostation_bottle %>% 
@@ -135,15 +135,16 @@ HydroS =  hydrostation_bottle %>%
   mutate(s_abs_gsw = gsw_SA_from_SP(Sal1, Pres_gsw,360-lonW, latN)) %>% 
   mutate(T_Cons_gsw = gsw_CT_from_t(s_abs_gsw,Temp,Pres_gsw))
 
-hydrostation_bottle %>% 
+HydroS %>% 
   filter(Temp != -999) %>% 
   ggplot()+
   geom_point(aes(x = Temp, y = T_Cons_gsw))
 
 
 
+
 HydroS =  hydrostation_bottle %>% 
-  filter(Sal1!= -999) %>% 
+  filter(Sal1 != -999 & `Sig-th` != -999) %>% 
   mutate(Pres_gsw = gsw_p_from_z(Depth*-1, latN)) %>% 
   mutate(s_abs_gsw = gsw_SA_from_SP(Sal1, Pres_gsw,360-lonW, latN)) %>% 
   mutate(T_Cons_gsw = gsw_CT_from_t(s_abs_gsw,Temp,Pres_gsw)) %>% 
@@ -155,25 +156,44 @@ HydroS %>%
   geom_point(aes(x = `Sig-th`, y = sig_theta_gsw))
 
 HydroS %>% 
-  filter(sig_theta_gsw<0) %>% 
-  View()
+  filter(sig_theta_gsw < 0) %>% 
+  view()
 
 HydroS_Corrected_a = HydroS %>% 
-  filter(sig_theta_gsw<0 & sig_theta_gsw != NA) %>% 
+  filter(sig_theta_gsw<0) %>% 
   mutate(s_abs_gsw = gsw_SA_from_SP(CTD_S, Pres_gsw,360-lonW, latN)) %>% 
   mutate(T_Cons_gsw = gsw_CT_from_t(s_abs_gsw,Temp,Pres_gsw)) %>% 
-  mutate(sig_theta_gsw = gsw_sigma0(s_abs_gsw,T_Cons_gsw))
+  mutate(sig_theta_gsw = gsw_sigma0(s_abs_gsw,T_Cons_gsw)) 
+  
 
 HydroS_Corrected_b = HydroS %>% 
   filter(sig_theta_gsw>0) 
 
 #The corrected one. And last one
-HydroS_corrected = rbind(HydroS_Corrected_a,HydroS_Corrected_b)
+HydroS_corrected = rbind(HydroS_Corrected_a,HydroS_Corrected_b) 
 
+
+
+                                           
 ```
 
 For Homework: 
 
 try to replace the broken line of data, and make in a way the code use in 161-168 in only a pipeline. 
-replace a line in the data using the tidyverse. 
+replace a line in the data using the tidyverse.
+
+
+
+
+
+```{r}
+view(HydroS)
+
+HydroS %>% 
+  mutate(test = if_else(sig_theta_gsw<0, mutate(s_abs_gsw = gsw_SA_from_SP(CTD_S, Pres_gsw,360-lonW, latN)) %>% 
+  mutate(T_Cons_gsw = gsw_CT_from_t(s_abs_gsw,Temp,Pres_gsw)) %>% 
+  mutate(sig_theta_gsw = gsw_sigma0(s_abs_gsw,T_Cons_gsw)) , "Hi"))
+
+
+```
 
