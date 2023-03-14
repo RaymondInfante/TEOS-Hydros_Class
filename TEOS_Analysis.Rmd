@@ -173,27 +173,65 @@ HydroS_Corrected_b = HydroS %>%
 HydroS_corrected = rbind(HydroS_Corrected_a,HydroS_Corrected_b) 
 
 
+HydroS_corrected %>% 
+  ggplot()+
+  geom_point(aes(x = sig_theta_gsw, y = Depth))+
+  scale_y_reverse()+
+  scale_x_continuous(position = "top")+
+  theme_classic()+
+  xlab(expression(paste(sigma[theta], "(kg m"^"-3",")")))+
+  ylab("Depth (m)")
+                     
 
-                                           
+                     
 ```
 
-For Homework: 
-
-try to replace the broken line of data, and make in a way the code use in 161-168 in only a pipeline. 
-replace a line in the data using the tidyverse.
-
-
-
-
+#Has surface sigma theta decreased over time? 
 
 ```{r}
-view(HydroS)
+HydroS_Shallow = HydroS_corrected %>% 
+  filter(Depth<30)
 
-HydroS %>% 
-  mutate(test = if_else(sig_theta_gsw<0, mutate(s_abs_gsw = gsw_SA_from_SP(CTD_S, Pres_gsw,360-lonW, latN)) %>% 
-  mutate(T_Cons_gsw = gsw_CT_from_t(s_abs_gsw,Temp,Pres_gsw)) %>% 
-  mutate(sig_theta_gsw = gsw_sigma0(s_abs_gsw,T_Cons_gsw)) , "Hi"))
+?lm
+#lm(y is a function(~) of x)
+lm(sig_theta_gsw~decy,data = HydroS_Shallow)
+#y = mx+b
+#Coeficients: intercept = b, decy = m 
+#Sig_theta_gws = -0.01563*decy + 56.28
+#(kg/m^3) = (kg/m^3/x)*x + (kg/m^3)
 
+sig_theta_model = lm(sig_theta_gsw~decy,data = HydroS_Shallow)
+summary(sig_theta_model)
+
+library(plotly)
+
+Sig_decy_plot = HydroS_Shallow %>% 
+  ggplot(aes(x = decy, y = sig_theta_gsw))+
+  geom_point()+
+  geom_line()+
+  geom_smooth(method = "lm")+
+  theme_classic()
+
+ggplotly(Sig_decy_plot)
 
 ```
+
+
+
+
+## Lab Assigment
+1. Pick a question (Include hypothesis)
+2. produce a plot and a statistical summary using lm()
+3. Describe your results, the summary, and answer the question
+4. Compile into a completed lab report using R Markdown
+
+Potential questions:
+how do temp, sal, and sigma-theta co-vary
+Is there a relationship between sigma-theta and oxygen?
+Is there a relationship of any of the parameter with depth? with time? within depth over time?
+Are there seasonal differences in any of the parameters?
+
+
+
+
 
