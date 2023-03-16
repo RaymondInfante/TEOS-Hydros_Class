@@ -15,3 +15,294 @@ Potential questions:
 *Is there a relationship between sigma-theta and oxygen?
 *Is there a relationship of any of the parameter with depth? with time? within depth over time?
 *Are there seasonal differences in any of the parameters?
+
+```{r, echo=FALSE}
+#Libraries needed
+
+library(tidyverse)
+library(gsw)
+
+```
+
+```{r, echo=FALSE}
+
+#Calling in the data
+hydrostation_bottle <- read_delim("hydrostation_bottle.txt", 
+    delim = "\t", escape_double = FALSE, 
+    col_names = FALSE, trim_ws = TRUE, skip = 31)
+
+
+
+hydrostation_bottle_names <- read_csv("hydrostation_bottle.txt", 
+    skip = 30)
+
+#Fix names for the dataset
+colnames(hydrostation_bottle) = colnames(hydrostation_bottle_names)
+
+view(hydrostation_bottle)
+
+
+```
+
+## Variables Names and Units
+- yyyymmdd = Year Month Day   
+- decy   = Decimal Year     
+- time   = Time (hhmm)      
+- latN   = Latitude (Deg N) 
+- lonW   = Longitude (Deg W)
+- Depth  = Depth (m)                  
+- Temp   = Temperature ITS-90 (C) 
+- Pres   = CTD Pressure (dbar)   
+- CTD_S  = CTD Salinity (PSS-78)      
+- Sal1   = Salinity-1 (PSS-78)        
+- Sig-th = Sigma-Theta (kg/m^3) - density of seawater at a given temperature (Density - 1000)   
+- O2(1)  = Oxygen-1 (umol/kg)          
+- OxFixT = Oxygen Fix Temp (C)        
+- Anom1  = Oxy Anomaly-1 (umol/kg)    
+
+## Quality flags
+*  -999  = No data
+*  0 = Less than detection limit
+
+
+
+## Questions 
+Is there a relationship between Conservative Temperature and Oxygen Concentration? 
+##And Concentrate more on:
+Is there any seasonal variability between this two?  
+
+1. Need to change from temperature to conservative temperature. 
+2. Look out if data is missing to recover it with gws. 
+| there is some missing data of Temperature. Need to use gsw
+| there is also missing data of O2
+
+To get conservative temperature I need
+1. Potential temperature (gsw_pt0_from_t)
+for potential temp I need: 
+- Absolute Salinity*
+- in-situ temperature*
+| to convert to conservative temperature use (gsw_ct_from_t)
+- sea pressure dbar*
+# Looking out for missing data. 
+```{r}
+hydrostation_bottle %>% 
+  ggplot(aes(x = decy, y = Temp))+
+  geom_point()
+
+
+hydrostation_bottle %>% 
+  filter(Temp==-999)
+
+
+hydrostation_bottle %>% 
+  ggplot(aes(x = decy, y = `O2(1)`))+
+  geom_point()
+
+
+hydrostation_bottle %>% 
+  filter(`O2(1)`==-999)
+```
+
+ 
+```{r, echo=FALSE}
+?gsw_p_from_z
+?gsw_SA_from_SP
+# Coding for absolute salinity 
+hydrostation_bottle = hydrostation_bottle %>% 
+  mutate(Pres_gsw = gsw_p_from_z(Depth*-1, latN)) %>%
+  mutate(abs_sal_gsw = gsw_SA_from_SP(Sal1, Pres_gsw,360-lonW, latN))
+
+hydrostation_bottle %>% 
+  ggplot()+
+  geom_point(aes(x = decy, y = abs_sal_gsw))
+
+#Code to get conservative temperature
+?gsw_CT_from_t
+hydrostation_bottle = hydrostation_bottle %>% 
+  filter(Sal1 != -999 & Temp != -999) %>% 
+  mutate(Pres_gsw = gsw_p_from_z(Depth*-1, latN)) %>% 
+  mutate(s_abs_gsw = gsw_SA_from_SP(Sal1, Pres_gsw,360-lonW, latN)) %>% 
+  mutate(T_Cons_gsw = gsw_CT_from_t(s_abs_gsw,Temp,Pres_gsw))
+
+hydrostation_bottle %>% 
+  ggplot()+
+  geom_point(aes(x = Temp, y = T_Cons_gsw))
+```
+
+Now I have conservative temperature...
+As temperature levels increase, the amount of dissolved oxygen in water decreased due to the inverse relationship between the two. 
+ 
+1. Is there a relationship between Conservative Temperature and Oxygen Concentration? 
+- need to plot oxygen concentration vs Conservative Temperature
+
+```{r, echo=FALSE}
+
+#Oxygen vs conserative temperature from depth of 0-400m 
+hydrostation_bottle %>% 
+  filter(Depth <= 400) %>% 
+  filter(`O2(1)`!= -999) %>% 
+  ggplot(aes(x = T_Cons_gsw, y = `O2(1)`))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+#Oxygen vs conserative temperature from depth of 1000-500m 
+hydrostation_bottle %>% 
+  filter(Depth >= 500 & Depth<= 1000) %>% 
+  filter(`O2(1)`!= -999) %>% 
+  ggplot(aes(x = T_Cons_gsw, y = `O2(1)`))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+
+
+#Oxygen within depth
+hydrostation_bottle %>% 
+  filter(`O2(1)`!= -999) %>% 
+  ggplot(aes(x = `O2(1)`, y = Depth ))+
+  geom_point(alpha = 0.7, color = "lightblue")+
+  scale_y_reverse()+
+  scale_x_continuous(position = "top")+
+  theme_classic()
+
+O2_Temp_model = lm(`O2(1)`~T_Cons_gsw, data = hydrostation_bottle)
+summary(O2_Temp_model)
+
+#Oxygen per year
+hydrostation_bottle %>% 
+  filter(`O2(1)`!= -999) %>% 
+  ggplot(aes(x = decy, y = `O2(1)`))+
+  geom_point(alpha = 0.5)+
+  geom_line(alpha = 0.5)
+# in here we can see the max and min value of O2 during all the monitoring
+
+
+#We have data each 50m from depth of 0-400m
+hydrostation_bottle %>% 
+  filter(Depth < 400) %>% 
+  ggplot(aes(x = decy, y = Depth))+
+  geom_point()+
+  scale_y_reverse()+
+  scale_x_continuous(position = "top")
+  
+#We have data each 100m from depth of 500-1000m 
+hydrostation_bottle %>% 
+  filter(Depth <=1000 & Depth>=500) %>% 
+  ggplot(aes(x = decy, y = Depth))+
+  geom_point()+
+  scale_y_reverse()+
+  scale_x_continuous(position = "top")
+  
+
+```
+
+```{r, echo=FALSE}
+#Separate de Months of the data and create a season column
+#In bermuda:
+#Dec-March = winter months
+#August-October = Summer months
+#summer = month>= 8 & month<= 10 
+
+#Depth from: 
+#0-400
+#500-1000
+
+
+Hydro_Date = hydrostation_bottle %>% 
+  separate(yyyymmd, c("Years","Months"), sep = 4) %>% 
+  separate(Months, c("Months", "Day"), sep = 2)
+
+Hydro_date_seasons = Hydro_Date %>% 
+  mutate(Months = as.numeric(Months)) %>% 
+  mutate(season = ifelse(Months==12|Months==1|Months==2|Months==3, "winter",
+         ifelse(Months==8|Months==9|Months==10, "summer","NA")))
+
+
+```
+
+
+Is there a relationship between conservative temperature and Dissolved Oxygen?
+Does it varies between seasons (Winter, Summer) and depths (0-400m and 500-1000) ? 
+
+I need to create 4 plots and 4 lm models
+1. Dissolved Oxygen vs conservative Temperature in winter at a depth 0-400m
+2.Dissolved Oxygen vs conservative Temperature in winter at a depth 500-1000m
+3. Dissolved Oxygen vs conservative Temperature in summer at a depth 0-400m
+4. Dissolved Oxygen vs conservative Temperature in summer at a depth 500-1000m
+
+
+Conservative temperature
+```{r}
+#1 DO vs CT in winter, 0-400m
+Hydro_date_seasons %>% 
+  filter(`O2(1)` != -999) %>% 
+  filter(Depth <= 400) %>% 
+  filter(season== "winter") %>% 
+  ggplot(aes(x = T_Cons_gsw, y = `O2(1)`))+
+  geom_point()+
+  geom_smooth(method = "lm", color = "#7B37A0")
+
+Hydro_winter_low = Hydro_date_seasons %>% 
+  filter(`O2(1)` != -999) %>% 
+  filter(Depth <= 400) %>% 
+  filter(season== "winter")
+
+summary(lm(`O2(1)`~T_Cons_gsw, data =Hydro_winter_low ))
+
+#2 DO vs CT in winter, 500-1000m 
+Hydro_date_seasons %>% 
+  filter(`O2(1)` != -999) %>% 
+  filter(Depth <= 1000 & Depth >= 500) %>% 
+  filter(season== "winter") %>% 
+  ggplot(aes(x = T_Cons_gsw, y = `O2(1)`))+
+  geom_point()+
+  geom_smooth(method = "lm", color = "#7B37A0")
+
+Hydro_winter_high = Hydro_date_seasons %>% 
+  filter(`O2(1)` != -999) %>% 
+  filter(Depth <= 1000 & Depth >= 500) %>% 
+  filter(season== "winter")
+
+summary(lm(`O2(1)`~T_Cons_gsw, data =Hydro_winter_high ))
+
+#3 DO vs CT in summer, 0-400m 
+Hydro_date_seasons %>% 
+  filter(`O2(1)` != -999) %>% 
+  filter(Depth <= 400) %>% 
+  filter(season== "summer") %>% 
+  ggplot(aes(x = T_Cons_gsw, y = `O2(1)`))+
+  geom_point()+
+  geom_smooth(method = "lm", color = "#7B37A0")
+
+Hydro_summer_low = Hydro_date_seasons %>% 
+  filter(`O2(1)` != -999) %>% 
+  filter(Depth <= 400) %>% 
+  filter(season== "summer")
+
+summary(lm(`O2(1)`~T_Cons_gsw, data =Hydro_summer_low ))
+
+
+#4 DO vs CT in summer, 500-1000m
+Hydro_date_seasons %>% 
+  filter(`O2(1)` != -999) %>% 
+  filter(Depth <= 1000 & Depth >= 500) %>% 
+  filter(season== "summer") %>% 
+  ggplot(aes(x = T_Cons_gsw, y = `O2(1)`))+
+  geom_point()+
+  geom_smooth(method = "lm", color = "#7B37A0")
+
+Hydro_summer_high = Hydro_date_seasons %>% 
+  filter(`O2(1)` != -999) %>% 
+  filter(Depth <= 1000 & Depth >= 500) %>% 
+  filter(season== "summer")
+
+summary(lm(`O2(1)`~T_Cons_gsw, data =Hydro_summer_high ))
+
+
+
+
+
+
+
+
+```
+
