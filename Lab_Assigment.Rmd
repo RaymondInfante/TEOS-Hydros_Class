@@ -1,10 +1,10 @@
 ---
-title: "Lab Assigment"
+title: "TEOS-10 Lab Assigment"
 author: "Raymond Infante"
 date: "2023-03-14"
 output: html_document
 ---
-## Lab Assigment
+### Lab Assignment
 1. Pick a question (Include hypothesis)
 2. produce a plot and a statistical summary using lm()
 3. Describe your results, the summary, and answer the question
@@ -16,15 +16,17 @@ Potential questions:
 *Is there a relationship of any of the parameter with depth? with time? within depth over time?
 *Are there seasonal differences in any of the parameters?
 
-```{r, echo=FALSE}
+
+```{r, echo=FALSE ,warning=FALSE, message=FALSE}
 #Libraries needed
 
 library(tidyverse)
 library(gsw)
+library(patchwork)
 
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE ,warning=FALSE, message=FALSE}
 
 #Calling in the data
 hydrostation_bottle <- read_delim("hydrostation_bottle.txt", 
@@ -44,7 +46,7 @@ view(hydrostation_bottle)
 
 ```
 
-## Variables Names and Units
+### Variables Names and Units
 - yyyymmdd = Year Month Day   
 - decy   = Decimal Year     
 - time   = Time (hhmm)      
@@ -60,31 +62,53 @@ view(hydrostation_bottle)
 - OxFixT = Oxygen Fix Temp (C)        
 - Anom1  = Oxy Anomaly-1 (umol/kg)    
 
-## Quality flags
+### Quality flags
 *  -999  = No data
 *  0 = Less than detection limit
 
 
+# BATS Hydrostation S Information 
 
-## Questions 
-Is there a relationship between Conservative Temperature and Oxygen Concentration? 
-##And Concentrate more on:
-Is there any seasonal variability between this two?  
+BATS - Bermuda Atlantic Time-series Study was established with the mission of uncovering scientific mysteries of the deep ocean, doing this by analyzing hydrographical and biological data in the water column [BATS](https://bats.bios.edu/about/). 
 
-1. Need to change from temperature to conservative temperature. 
-2. Look out if data is missing to recover it with gws. 
-| there is some missing data of Temperature. Need to use gsw
-| there is also missing data of O2
+In this assignment, we are using Hydrostation S. This Station is part of BATS and was established in 1954 by Dr. Henry M. Stommel. This station has been continuously monitored biweekly, producing data on temperature, salinity and dissolved oxygen. 
 
-To get conservative temperature I need
-1. Potential temperature (gsw_pt0_from_t)
-for potential temp I need: 
-- Absolute Salinity*
-- in-situ temperature*
-| to convert to conservative temperature use (gsw_ct_from_t)
-- sea pressure dbar*
-# Looking out for missing data. 
-```{r}
+# TEOS-10 Information 
+
+In this assignment, we are using the [TEOS-1O Gibbs Seawater (GSW) Oceanographic Toolbox](TEOS-10.pdf). TEOS-10 is the International Thermodynamic Equation of Seawater-2010 and evaluates the thermodynamics properties of pure water, ice, seawater and moist air. TEOS-10 has introduced new variables such as Absolute Salinity, Preformed Salinity, and Conservative Temperature. 
+
+In this assignment we are using Conservative Temperature, which takes the place of potential temperature. According to [TEOS-1O Gibbs Seawater (GSW) Oceanographic Toolbox](TEOS-10.pdf), conservative temperature represents more accurately the heat content of seawater. 
+
+To obtain Conservative temperature, we first used the salinity, temperature, pressure, latitude, and longitudes variables to obtain absolute salinity. With the absolute salinity created, we used the gsw_CT_from_t function to obtain the conservative temperature, using this to answer our hypotheses. 
+
+
+Information about oxygen: 
+
+Dissolved Oxygen (DO) is a measure of the quantity of oxygen molecules in the water column. [USGS](https://www.usgs.gov/special-topics/water-science-school/science/dissolved-oxygen-and-water#overview). According to the USGS, the  concentration of DO is affected by the temperature, cold water, holds more DO than warm water, and this can be seen in daily and seasonal cycles. In winter and spring the water temperature tends to be low (DO concentration high), as the inverse occurs in summer and fall, when water temperature are high (DO concentration will be lower). 
+Retrieved from: [USGS](https://www.usgs.gov/special-topics/water-science-school/science/dissolved-oxygen-and-water#overview).
+
+
+According to WOCE hydrographic program, the vertical profile of dissolved oxygen in the Atlantic Ocean is high at the surface, it reach a minimum at almost 1000m and have another maximum in depth of 2000m. 
+
+
+# Questions and Hypothesis
+
+1. Is there a relationship between Conservative Temperature and Oxygen Concentration? 
+
+2. Is there any seasonal variability between this two?  
+
+# Ho
+
+1. There is a correlation between Dissolved Oxygen and Conservative Temperature
+
+2. The correlation between Dissolves Oxygen and Conservative Temperature varies seasonally and with depth. 
+
+
+## Data Wrangling for Conservative Temperature
+```{r, echo=TRUE ,warning=FALSE, message=FALSE, fig.show='hide', results='hide'}
+#Looking out for missing data
+
+
 hydrostation_bottle %>% 
   ggplot(aes(x = decy, y = Temp))+
   geom_point()
@@ -104,7 +128,9 @@ hydrostation_bottle %>%
 ```
 
  
-```{r, echo=FALSE}
+```{r, echo=TRUE ,warning=FALSE, message=FALSE, fig.show='hide', results='hide'}
+#Coding to obtain Absolute Salinity and Conservative Temperature and create add missing data from 1950's.
+
 ?gsw_p_from_z
 ?gsw_SA_from_SP
 # Coding for absolute salinity 
@@ -129,15 +155,11 @@ hydrostation_bottle %>%
   geom_point(aes(x = Temp, y = T_Cons_gsw))
 ```
 
-Now I have conservative temperature...
-As temperature levels increase, the amount of dissolved oxygen in water decreased due to the inverse relationship between the two. 
- 
-1. Is there a relationship between Conservative Temperature and Oxygen Concentration? 
-- need to plot oxygen concentration vs Conservative Temperature
 
-```{r, echo=FALSE}
 
-#Oxygen vs conserative temperature from depth of 0-400m 
+```{r, echo=FALSE ,warning=FALSE, message=FALSE, fig.show='hide', results='hide'}
+
+#Oxygen vs conservative temperature from depth of 0-400m 
 hydrostation_bottle %>% 
   filter(Depth <= 400) %>% 
   filter(`O2(1)`!= -999) %>% 
@@ -195,7 +217,7 @@ hydrostation_bottle %>%
 
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE ,warning=FALSE, message=FALSE, fig.show='hide', results='hide'}
 #Separate de Months of the data and create a season column
 #In bermuda:
 #Dec-March = winter months
@@ -230,79 +252,178 @@ I need to create 4 plots and 4 lm models
 4. Dissolved Oxygen vs conservative Temperature in summer at a depth 500-1000m
 
 
-Conservative temperature
-```{r}
-#1 DO vs CT in winter, 0-400m
+# Results
+```{r, echo=FALSE ,warning=FALSE, message=FALSE, fig.show='hide', results='hide'}
+
+
+#Oxygen within depth in winter
+oxygen_depth_winter <- Hydro_date_seasons %>% 
+  filter(`O2(1)`!= -999) %>% 
+  filter(season == "winter") %>% 
+  ggplot(aes(x = `O2(1)`, y = Depth ))+
+  geom_point(alpha = 0.5, color = "#7B37A0")+
+  scale_y_reverse()+
+  scale_x_continuous(position = "top")+
+  theme_classic()+
+  labs(x = "Dissolved Oxygen (umol/kg)", y = "Depth (m)" )
+
+c_temp_depth_winter <- Hydro_date_seasons %>% 
+  filter(`O2(1)`!= -999) %>% 
+  filter(season == "winter") %>% 
+  ggplot(aes(x = T_Cons_gsw, y = Depth ))+
+  geom_point(alpha = 0.5, color = "#7B37A0")+
+  scale_y_reverse()+
+  scale_x_continuous(position = "top")+
+  theme_classic()+
+  labs(x = "Conservative Temperature Θ", y = "Depth (m)" )
+
+
 Hydro_date_seasons %>% 
+  filter(`O2(1)`!= -999) %>% 
+  filter(season == "winter") %>% 
+  ggplot(aes(x = `O2(1)`, y = Depth ))+
+  geom_point(alpha = 0.7, color = "lightblue")+
+  scale_y_reverse()+
+  scale_x_continuous(position = "top")+
+  theme_classic()+
+  labs(x = "Dissolved Oxygen (umol/kg)", y = "Depth (m)" )
+#Oxygen within depth in summer
+oxygen_depth_summer <- Hydro_date_seasons %>% 
+  filter(`O2(1)`!= -999) %>% 
+  filter(season == "summer") %>% 
+  ggplot(aes(x = `O2(1)`, y = Depth ))+
+  geom_point(alpha = 0.5, color = "#d19f0a")+
+  scale_y_reverse()+
+  scale_x_continuous(position = "top")+
+  theme_classic()+
+  labs(x = "Dissolved Oxygen (umol/kg)", y = "Depth (m)" )
+
+
+t_cons_depth_summer <- Hydro_date_seasons %>% 
+  filter(`O2(1)`!= -999) %>% 
+  filter(season == "summer") %>% 
+  ggplot(aes(x = T_Cons_gsw, y = Depth ))+
+  geom_point(alpha = 0.5, color = "#d19f0a")+
+  scale_y_reverse()+
+  scale_x_continuous(position = "top")+
+  theme_classic()+
+  labs(x = "Conservative Temperature Θ", y = "Depth (m)" )
+
+
+
+
+#1 DO vs CT in winter, 0-400m
+do_ct_win400 <- Hydro_date_seasons %>% 
   filter(`O2(1)` != -999) %>% 
-  filter(Depth <= 400) %>% 
+  filter(Depth == 100) %>% 
   filter(season== "winter") %>% 
   ggplot(aes(x = T_Cons_gsw, y = `O2(1)`))+
   geom_point()+
-  geom_smooth(method = "lm", color = "#7B37A0")
+  geom_smooth(method = "lm", color = "#7B37A0")+
+  theme_classic()+
+  labs(x = "Conservative Temperature (Θ)", y = "Dissolved Oxygen (umol/kg) ", title = "Winter DO vs Θ (100m)")+ scale_y_continuous(limits = c(120,240), breaks = c(120,140,160,180,200,220,240))+
+  annotate("text", x = 19, y = 160, label = expression(paste("R"^2, "= 0.03")))
 
 Hydro_winter_low = Hydro_date_seasons %>% 
   filter(`O2(1)` != -999) %>% 
-  filter(Depth <= 400) %>% 
+  filter(Depth == 100) %>% 
   filter(season== "winter")
 
 summary(lm(`O2(1)`~T_Cons_gsw, data =Hydro_winter_low ))
 
 #2 DO vs CT in winter, 500-1000m 
-Hydro_date_seasons %>% 
+do_ct_win1000 <- Hydro_date_seasons %>% 
   filter(`O2(1)` != -999) %>% 
-  filter(Depth <= 1000 & Depth >= 500) %>% 
+  filter(Depth == 1000) %>% 
   filter(season== "winter") %>% 
   ggplot(aes(x = T_Cons_gsw, y = `O2(1)`))+
   geom_point()+
-  geom_smooth(method = "lm", color = "#7B37A0")
+  geom_smooth(method = "lm", color = "#7B37A0")+theme_classic()+ theme(axis.title.y = element_blank())+
+  scale_y_continuous(limits = c(120,240), breaks = c(120,140,160,180,200,220,240))+
+  labs(x = "Conservative Temperature (Θ)",title = "Winter DO vs Θ (1000m)")+
+  annotate("text", x = 6.5, y = 160, label = expression(paste("R"^2, "= 0.753")))
 
-Hydro_winter_high = Hydro_date_seasons %>% 
+Hydro_winter_high = Hydro_date_seasons %>%
   filter(`O2(1)` != -999) %>% 
-  filter(Depth <= 1000 & Depth >= 500) %>% 
+  filter(Depth == 1000) %>%
   filter(season== "winter")
 
 summary(lm(`O2(1)`~T_Cons_gsw, data =Hydro_winter_high ))
 
 #3 DO vs CT in summer, 0-400m 
-Hydro_date_seasons %>% 
+do_ct_sum400 <- Hydro_date_seasons %>% 
   filter(`O2(1)` != -999) %>% 
-  filter(Depth <= 400) %>% 
+  filter(Depth == 100) %>% 
   filter(season== "summer") %>% 
   ggplot(aes(x = T_Cons_gsw, y = `O2(1)`))+
   geom_point()+
-  geom_smooth(method = "lm", color = "#7B37A0")
+  geom_smooth(method = "lm", color = "#d19f0a")+theme_classic()+
+  labs(x = "Conservative Temperature (Θ)", y = "Dissolved Oxygen (umol/kg) ", title = "Summer DO vs Θ (100m)")+scale_y_continuous(limits = c(120,250), breaks = c(120,140,160,180,200,220,250))+
+  annotate("text", x = 20, y = 160, label = expression(paste("R"^2, "= 0.10")))
 
 Hydro_summer_low = Hydro_date_seasons %>% 
   filter(`O2(1)` != -999) %>% 
-  filter(Depth <= 400) %>% 
+  filter(Depth == 100) %>% 
   filter(season== "summer")
 
 summary(lm(`O2(1)`~T_Cons_gsw, data =Hydro_summer_low ))
 
 
 #4 DO vs CT in summer, 500-1000m
-Hydro_date_seasons %>% 
+do_ct_sum1000 <- Hydro_date_seasons %>% 
   filter(`O2(1)` != -999) %>% 
-  filter(Depth <= 1000 & Depth >= 500) %>% 
+  filter(Depth == 1000) %>% 
   filter(season== "summer") %>% 
   ggplot(aes(x = T_Cons_gsw, y = `O2(1)`))+
   geom_point()+
-  geom_smooth(method = "lm", color = "#7B37A0")
+  geom_smooth(method = "lm", color = "#d19f0a")+theme_classic()+
+  labs(x = "Conservative Temperature (Θ)", y = "Dissolved Oxygen (umol/kg) ", title = "Summer DO vs Θ (1000m)")+scale_y_continuous(limits = c(120,250), breaks = c(120,140,160,180,200,220,250))+
+  annotate("text", x = 6.5, y = 160, label = expression(paste("R"^2, "= 0.76")))
 
-Hydro_summer_high = Hydro_date_seasons %>% 
+Hydro_summer_high = Hydro_date_seasons %>%
   filter(`O2(1)` != -999) %>% 
-  filter(Depth <= 1000 & Depth >= 500) %>% 
+  filter(Depth == 1000) %>% 
   filter(season== "summer")
 
 summary(lm(`O2(1)`~T_Cons_gsw, data =Hydro_summer_high ))
 
 
+# Using Patchwork
+
+winter1 = oxygen_depth_winter+c_temp_depth_winter
+winter2 = do_ct_win400+do_ct_win1000
+
+winter1
+winter2
+
+summer1 = oxygen_depth_summer+t_cons_depth_summer
+summer2 = do_ct_sum400+do_ct_sum1000
+
+summer1
+summer2
+
+```
 
 
-
-
+### Correlation for Winter
+```{r, echo=FALSE ,warning=FALSE, message=FALSE}
+#Present Images
+winter1
+winter2
 
 
 ```
 
+### Correlation for Summer
+```{r, echo=FALSE ,warning=FALSE, message=FALSE}
+summer1
+summer2
+```
+
+# Discussion 
+
+There seems none significance differences of Dissolved Oxygen and Conservative Temperature within depth seasonally. Also there appears to be none difference between winter and summer. However, there is a difference in correlation between depths in both seasons. 
+
+There is no correlation of Dissolved oxygen vs Conservative Temperature at 100m (R-squared - winter = 0.03, summer = 0.10), nevertheless, it exist a negative correlation at 1000m ( R-squared - winter = 0.75, summer = 0.76). At 1000m the higher the conservative temperature, the lower will be the Dissolved Oxygen concentration. 
+
+The lack of correlation between this two parameter at 100m may be due to the multiple factors that dictate the concentration of dissolved oxygen in the surface, such as: Temperature, salinity, and biological activity (Primary Production). At 1000m, factor as salinity and Biological activity may not have much effect, increasing the correlation of Dissolved oxygen vs temperature at higher depths. 
